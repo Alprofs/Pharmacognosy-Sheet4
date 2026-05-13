@@ -1,1 +1,669 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pharmacognosy Sheet 4</title>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #F0F4F8;
+            --btn-green: #12D11E;
+            --btn-green-dark: #0fb319;
+            --btn-blue: #2196F3;
+            --btn-blue-dark: #1976D2;
+            --correct-bg: #E8F5E9;
+            --correct-border: #2E7D32;
+            --wrong-bg: #FFEBEE;
+            --wrong-border: #C62828;
+            --progress-yellow: #FFC107;
+            --grey-border: #B0BEC5;
+            --grey-light: #ECEFF1;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Almarai', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        #app-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow-y: auto;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* الشاشة الرئيسية */
+        #home-screen {
+            justify-content: center;
+        }
+
+        .btn-main {
+            width: 90%;
+            max-width: 400px;
+            background-color: var(--btn-green);
+            color: white;
+            padding: 25px;
+            margin: 15px 0;
+            border-radius: 25px;
+            border: none;
+            font-size: 32px;
+            font-weight: 800;
+            box-shadow: 0 8px 0 var(--btn-green-dark);
+            cursor: pointer;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .btn-main:active {
+            transform: translateY(8px);
+            box-shadow: 0 0px 0 transparent !important;
+        }
+
+        /* شاشة الأسئلة */
+        .quiz-header {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar-bg {
+            flex-grow: 1;
+            height: 18px;
+            background: #E0E0E0;
+            border-radius: 10px;
+            margin: 0 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--progress-yellow);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .close-btn {
+            color: #D32F2F;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+
+        #round-info {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #1976D2;
+            font-weight: 800;
+            font-size: 20px;
+        }
+
+        .question-box {
+            width: 100%;
+            max-width: 800px;
+            padding: 10px 15px;
+            text-align: left;
+            direction: ltr;
+            font-size: 26px;
+            margin-bottom: 25px;
+            color: #000;
+            font-weight: 800;
+            line-height: 1.4;
+        }
+
+        /* تنسيق الصورة لتكون في منتصف الشاشة */
+        .content-image {
+            display: block;
+            margin: 15px auto;
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .options-container {
+            width: 100%;
+            max-width: 800px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            padding-bottom: 100px;
+        }
+
+        @media (min-width: 600px) {
+            .options-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .option-btn {
+            border: 3px solid var(--grey-border);
+            border-radius: 20px;
+            padding: 18px 20px;
+            text-align: left;
+            direction: ltr;
+            font-size: 18px;
+            font-weight: 800;
+            color: #000;
+            background: white;
+            box-shadow: 0 6px 0 var(--grey-border);
+            cursor: pointer;
+            transition: all 0.1s ease-in-out;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-btn.active-click:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 transparent;
+        }
+
+        .option-btn.correct {
+            background: var(--correct-bg) !important;
+            border-color: var(--correct-border) !important;
+            color: var(--correct-border) !important;
+            box-shadow: 0 6px 0 var(--correct-border);
+            pointer-events: none;
+        }
+
+        .option-btn.wrong {
+            background: var(--wrong-bg) !important;
+            border-color: var(--wrong-border) !important;
+            color: var(--wrong-border) !important;
+            box-shadow: 0 6px 0 var(--wrong-border);
+            pointer-events: none;
+        }
+
+        .option-btn.locked {
+            pointer-events: none;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            background: white;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 100;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-btn {
+            flex: 1;
+            max-width: 390px;
+            color: white;
+            padding: 18px;
+            border-radius: 20px;
+            border: none;
+            font-size: 24px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .nav-btn.next {
+            background: var(--btn-green);
+            box-shadow: 0 6px 0 var(--btn-green-dark);
+        }
+
+        .nav-btn.prev {
+            background: var(--btn-blue);
+            box-shadow: 0 6px 0 var(--btn-blue-dark);
+        }
+
+        .nav-btn:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 transparent;
+        }
+
+        .nav-btn:disabled {
+            background: #B0BEC5;
+            box-shadow: 0 6px 0 #90A4AE;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dialog {
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            border-radius: 30px;
+            padding: 40px 20px;
+            text-align: center;
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop {
+            from {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app-container">
+
+        <div id="home-screen" class="screen active">
+            <h1 style="color:#2196F3; font-size: 40px; margin-bottom: 40px; text-align: center;">Biochemistry<br>Master</h1>
+            <button class="btn-main" onclick="initQuiz()">أسئلة</button>
+        </div>
+
+        <div id="quiz-screen" class="screen">
+            <div class="quiz-header">
+                <span class="close-btn" onclick="goHome()">✕</span>
+                <div class="progress-bar-bg">
+                    <div id="bar" class="progress-bar-fill"></div>
+                </div>
+                <div id="counter" style="font-weight: 800; min-width: 60px; font-size: 18px; direction: ltr; text-align: center;">0/0</div>
+            </div>
+
+            <div id="round-info">الجولة (1)</div>
+
+            <div class="question-box">
+                <div id="q-txt">...</div>
+                <img id="q-img" class="content-image" src="" alt="صورة توضيحية للسؤال" style="display: none;">
+            </div>
+
+            <div class="options-container" id="opt-box"></div>
+
+            <div class="footer">
+                <button id="prev-btn" class="nav-btn prev" onclick="goPrev()">السابق</button>
+                <button id="next-btn" class="nav-btn next" onclick="goNext()">التالي</button>
+            </div>
+        </div>
+
+        <div id="win-overlay" class="overlay">
+            <div class="dialog">
+                <h1 style="color: var(--btn-green); font-size: 45px; margin: 0 0 15px 0;">بطل! 🎉</h1>
+                <p style="font-size: 22px; font-weight: 800; color: #333; margin-bottom: 30px;">لقد أنهيت جميع الأسئلة بنجاح تام.</p>
+                <button class="btn-main" style="width: 100%; box-shadow: 0 6px 0 var(--btn-green-dark);" onclick="location.reload()">العودة للرئيسية</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+const questionsBank = [
+    /* ================= SHEET 4 ================= */
+
+    {
+        q: "All the following has indole alkaloids as active constituents except:",
+        opts: ["Calabar beans", "Nux vomica", "Colchicum seeds", "Non of them"],
+        correct: 2 // Colchicum seeds contain tropolone alkaloids, not indole.
+    },
+    {
+        q: "The international standard of strophanthus cardiac glycosides:",
+        opts: ["Strophanthin K", "Cymarin", "Strophanthin H", "Ouabain"],
+        correct: 3 
+    },
+    {
+        q: "A seed that could be used in treatment of congestive heart failure:",
+        opts: ["Calabar beans", "Nux vomica", "Colchicum seeds", "Strophanthus seed"],
+        correct: 3 
+    },
+    {
+        q: "A lectin protein responsible for the toxicity of castor seeds:",
+        opts: ["Ricinoleic acid", "Ricin D", "Ricinolein", "Ricinine"],
+        correct: 1 
+    },
+    {
+        q: "Colchicine belongs to:",
+        opts: ["Tropolone alkaloids", "Tropane alkaloids", "Indole alkaloids", "Purine alkaloids"],
+        correct: 0 
+    },
+    {
+        q: "Used for treatment of Familial Mediterranean Fever:",
+        opts: ["Nutmeg seeds", "Colchicum seeds", "Datura seeds", "Coffee seeds"],
+        correct: 1 
+    },
+    {
+        q: "Used in treatment of chronic venous insufficiency:",
+        opts: ["Pumpkin seeds", "Evening primrose seed", "Calabar beans", "Horse chest nut"],
+        correct: 3 
+    },
+    {
+        q: "The main active constituents of pumpkin seeds:",
+        opts: ["Triterpenoidal saponin", "Phytosterols", "Purine Alkaloids", "Sesquiterpene lactone"],
+        correct: 1 
+    },
+    {
+        q: "Main use of pumpkin seed:",
+        opts: ["ttt of glaucoma", "ttt of congestive heart failure", "ttt of benign prostatic hyperplasia", "ttt of migraine"],
+        correct: 2 
+    },
+    {
+        q: "Used in treatment of premenstrual syndrome:",
+        opts: ["Castor oil", "Nigella oil", "Evening primrose oil", "Fenugreek oil"],
+        correct: 2 
+    },
+    {
+        q: "One of the uses of evening primrose oil:",
+        opts: ["ttt of venous insufficiency", "Improves nerve function in diabetic neuropathy", "ttt of chronic constipation", "ttt of glaucoma"],
+        correct: 1 
+    },
+    {
+        q: "A good source of omega-6:",
+        opts: ["Evening primrose oil", "Linseed oil", "Castor oil", "Fenugreek oil"],
+        correct: 0 
+    },
+    {
+        q: "A cyanogenetic glycoside occur in bitter almond seeds:",
+        opts: ["Myristicin", "Sinigrin", "Amygdalin", "Sinalbin"],
+        correct: 2 
+    },
+    {
+        q: "An immunostimulant drug:",
+        opts: ["Colchicum", "Fennel", "Nux vomica", "Nigella"],
+        correct: 3 
+    },
+    {
+        q: "A good alternative for starchy food for diabetic patients:",
+        opts: ["Sweet almond", "Black mustard", "Nigella", "Cardamom"],
+        correct: 0 
+    },
+    {
+        q: "The CNS stimulant activity for the Coffee beans is due to:",
+        opts: ["Theobromine", "Atropine", "Strychnine", "Caffeine"],
+        correct: 3 
+    },
+    {
+        q: "Could be a good alternative for flour containing food in case of diabetic patient:",
+        opts: ["Castor seeds", "Nutmeg seeds", "Nigella seeds", "Almond seeds"],
+        correct: 3 
+    },
+    {
+        q: "Sinigrin glycoside undergo hydrolysis with myrosin enzyme giving:",
+        opts: ["Acrinyl isothicyanate", "P-hydroxyl benzyl isothiocyanate", "Allyl isothiocyanate", "Sinapine acid sulphate"],
+        correct: 2 
+    },
+    {
+        q: "Used in treatment of organophosphorous poisoning:",
+        opts: ["Eserine", "Atropine", "Caffeine", "Theobromine"],
+        correct: 1 
+    },
+    {
+        q: "Used in treatment of glaucoma:",
+        opts: ["Eserine", "Atropine", "Caffeine", "Theobromine"],
+        correct: 0 
+    },
+    {
+        q: "An example of a seed has Mayer's negative alkaloids:",
+        opts: ["Datura seeds", "Colchicum seeds", "Theobroma cocoa", "Nux vomica"],
+        correct: 2 // Purine bases are Mayer's negative.
+    },
+    {
+        q: "Helpful in treatment of Alzheimer disease:",
+        opts: ["Calabar beans", "Colchicum seeds", "Datura seeds", "Nux vomica"],
+        correct: 0 
+    },
+    {
+        q: "Helpful in treatment of parkinsonism disease:",
+        opts: ["Calabar beans", "Colchicum seeds", "Datura seeds", "Nux vomica"],
+        correct: 2 
+    },
+    {
+        q: "This diagram represents ________ which is a testa outgrowth.",
+        img: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAB8AFEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9FaKKbsoAHfYteL/HL9p/w18HP9BlWfVfEDr+60+xXe//AAPZXpHjzxIvhLwpqersrP8AY4Hl2f3q8X/ZI8GWet+HL3x/rVrBea34hne4824+fyk/uUAeQ2f7cPxBfVIlvPhbe/ZJW/5Zbt+z/viujm/bbvtBf7T4j8C6to+lS/6i4f77v/3xX2RstvveVH8n+zWZr2j6Rqtk/wDacFtc2ibnZLuJdiLQB8q+J/27fDyeAJdV8OQXd/qsr+Utu8XyQN/feug+F3xg+Jfi3wXp/wDYvhmLXpXX97res6jFbo7/APXKLe3yV88vqvhXRP2k/EsHhOW2m0S4VElt9v7rf/sV9XfCJ9K0pZV0yxstN8+ffL9nXZvauaVOXMelTr04UuTlMnxp8H/il8WvDl1pvifxhpOl6fcLv+w6TpzN8y/Mm+V3/vIteXH4Y+LPsLab4u+H/iXxzr8S+VBd3OvL/Zj/ANx9u9Ni/wCxX2ZZzK8SfNVjZUSw0ZS5onTh8zlSp+ylGMj8+f8Ahifx/wD9C/4b/wC/70V+hOW/uUVP1WBt/bVX/n2h1RPNsSpa+ev2wP2hIvgt4GeCx+fxBqiulr83+q/267j54P2h/wBqjwT8KILjRdQl/tXU5Yn3adF/d/26+N/gz+0h8VNN1SbRfAulS6lpV1O72tpNAzpBu/2/4a8/8MfDqz16w/4Tr4kavc+VdN5sFjuf7Xfv/sf3Vr6d+FHwT+IPxa8IS3Oh69bfDrw4i7LOx0xUZ2/66yp81AGh4w8efFnxh48tPD1nq9toPiDSbFtQvLS0l3pcOv8Ayy31F8YPFvxd+K/gXT5/Dmp6bo+j3Vn5V9vvFileVfv/AHv4a4/4JzXnwi/aMu/AF9Ouq67PKyX2tyy73dNn3E3VY/Zs/Z+8L/FT4g+PrbxZPfar/Zt80UWnpOyRLuegD53vP2bPiR4Ys38Q6YsGsJbtvll0m8W4dP8AgFewfs5ftVxW17FoviqX7HdRP/x8PFXd/tCfs36n+zfLb+PfhTeakkSS7J9J+aVEX+/Xh/i3wTp/7QmjXfiXw1p66P49sovN1jQU+RLr+/LF/wDEUAfpF4M8c22sWcUsEvnRN910Wu7trzevy1+Z/wCxz8b76zurjwvqEtzvtV/cQ/3P9ivv3wr4kW/VN3m/6rf89AHffNRVL7T/AL1FAFqb/Vbt38NfmV+0hra/Gz9q/SvDPm/8S+znWy+T+7/HX6S6reeTpcsu7/VRb6/Pz9kLw3Y+Nv2lPGGtXkTXj2rSurv/AAuz0Aeh/DHQdB8efHHxRrkS2T6J4SiXRYLS4/1SKvyPLX1h4VtvC/gnw5cX2kLaWGiMrXDPC37rb/G9fHn7MHw00/xD8UPi3pF5LI9p9u2N9nl8p2+f7le5/tIa2vw0+Cf9h6DbKkuo7dKs7fb/AM9floA+f/DGpeB/iv8AHrxn8VJbz+zfD+gsm24ibY8svzrv/wCB1U8T+GPGf7PHi2Lx14O1pf8AhD/FU6S3lxdwb/s+7++n/s9HiH4G+IfCXwd8R6fBY2mg6FYWaPdX0UX+kX8qv/H/ALPz19V+EvD1j8Tv2eNH0y5iW5srzTEibev3G2ffoA6vwZ4ts/Hnh7z4Jft8TfJLN5X7qX/cr4k/a98B33wQ+KuhfE/w8rWdrcXSpfv/ALX+3/s7aqfBab4s6V4r1jwr4a8WWP2fwpdPaxaTqC7Elir0P9ofxP4z8T/B270Xx14OudEu2be19pkSXUXy/c+T+GgD5v8A2nPCtr4J8f6J8S/Csv8AxJPEKpcM9v8AcV/40r6o+DnjaLVbK0uYmj2S2qfxV8hf8J+3xI/ZhuPCrWyvqvhKfzd/8bwf367X9lTxt52jfZmb57XZF/4/QB+hH9qp/eX/AL6orzr/AISb/a/8dooA9I+IWtroPgPWNQZd6W9nKzf98V8M/sQ6rPoOkfFXx0zf6PFEz+Sn39/3q+xvjNbLqXwi8RwNu2Pp0v3G/wBivkT9kXQbHxD8J/i3pWnv8lxa7FdP7+z7lAG7+wT42gsIPGfiXV51+0atdS3Wx/voq/P871z/AI5/artvj38XPCiWug3qaF4evPtt1sXfv2/cevnrwrrfj3WPClp4J8Pfa/8ASp5bL9zFsR/9jfWnD8N1+CGs6xZ+Ktans9V/snzbVNOn8rdK3/LJ3oA/Rj4teJLnxP8As/8AjO+vtInsLdrF9sT7d7J/A9dR+zMi/wDDPvhL975z/Y0+evPPAF5c/F39nHULa58+2efR/l/j2fJ/49Wx+xtrDTfAXSoGl3vZtPbtv/2XoA+T/j9o+ofDH9qh9Q8GS3P9q3GzUJ7R/nS4evuvwZ8QtD+Ivg1H/tOyv71LVUvrdPn8qXZ86OjV+c/x7+Nip+2NDrli0qRaTdJatv8AufL9/Z/33X174/8AAH/CN6NN8T/ADNpusT2v2q607yv9Hvf4vni/vf7dAHyJ8LvCVjf/AB/+IelQX0F/p8tjeefDDFs3fJ9yuC/Z4eXSvFuq2yy7ERtmz/gdey/sf/2j8Qv2hfHfiq8sVs2a1uHnt0XZ97+CvH/hvpt5YfFrxHK0Xk2nnt5W/wDj/e0AfYH9sN/elorF86igD6F+Kjyv8JfEHlNsf+zpfn/4BXyP/wAE1n33Xju2l/1Uq/NX2hrGmrrHg+9s5drxXFmyMn/AK+B/2M9Yn8H+P/iXoNsv717O6eCX+NXXfQB7b+xbrdnbeP8Axx4JXT4rlNN1OW6gu3VH8pWf+/Xl/wDwU+0eCw8b+GrqKJU+0WrJL8v3ttN/4J0eM7mH4z+KNMvp4t+pbpW81f3rvvf5K9w/a38MaR8e/AfiBrZZftfg+6/ezIvzt/f2UAdV+yXeavqvwqt2uYraHR20xPscUX8PyfP89ZX7D14v/CP+NdI3K72WtT/uX/utXa/su6VLoPw0stGtoN/h+K1T7LdvKjvLuT+PbXn/AOyXNF4Y+I3xg0yXbD5GrfaPOf8AgVqAPk/9vCw0zSv2kdPii0VrOJlglunhX/W/P871+jfgnW9M174baJFoc63NpcWKpFcQ/OifJ/HXx54G8Jar8cv21dY8Q3kX9q+FNIZrdZpV3xMmz7iV9J+GP2bIvhjreoXnhXxRrOm2VxK0q6M8u+3Xd9/5KAPBP2PIZbb4yfFttTfZqatslTbs3r/fr5l8JX8Vz8cPFaQbvs6Xku1Hb7vz17x8NPiLPpX7WPi3T7nzNSu7izlS+uH+4jRJu+TbXzP8NL/+3vjPrV9axLDaSzu/3v8AboA+uN/+1RVfc1FAH2BYQ+dpe1v44K/NTQdV/wCFUftpXdncq0Npe6i8Tf7Sy1+nGlQ/6An+7X53/t8+D5fB/wAVfD/i+Bdn2pV2y/3WV6ALHw0+FEXhX9uaXQ2vpYbTz3vYvsjffT7yJX6C2Hw3g/s7xLp88Vt9k1bfuSGLZ97+/Xxv9g1Dxb+0t8J/EcV8umxappKStNbr/rXX76V98I6ovy7vu0AcP8Gfh7/wq7wXF4ca8bUktWfbM6/wf3K8a+Fej2Nz8ffi7orRfur/AMrzf9xkr6jtkX52/v14Z4P8Hy6J+0j4zvNrJaX9nBKsv+3QB3vw3+HWmfDfw5FoemL/AKLF91/466PUn2RPP/Aq1dhRYfmVvk2/x1578b/ippHwo8B6hrWr3MUOyJ/KhdvndqAPgGz8ctqvxJ+Mfj9bGKGKwsZbKLyYtnzN8nz14v8As62H2zVL2+ZG37v/AGet7xzqt54V+EEssUsSah43vHvbq3Rv3sUH8CbK2P2ePDctnoyNL87z/P8A+P0AfQH2Nv8AaorqP7Hb/L0UAfVFhCqWqfL/AA14P+2B8Mbb4hfCfVVl2pcWEH2qB3/2a+gLZNkSf7tZPirR4Nb0a7sbmLfb3EXlSp/s0Afmv8Ivi1rN54P8Ly6VZ/234g8C3T3H2RPvy2Vfo98Gfivovxm8G2muaVOuy4XfLb7vnt3/AI0evzE+JfhLUP2RfjjFrWi/vtKeXesLr8ksX8cT16HpXirw5428VS6v8JvF8vw01uW1+23lpdy7LFn/AI0oA/SjXtesfCukS6hfTrbWkX3pXqWG8tr/AGXlsyuksX+tSvzK+P1z8ck+Ftvr2ueOtL1jQrqVYlTTJf8AWt/BUPh745fHf4XfCyJp9Q0KHT/K/wBFfULpXuH/ANz56APs79qL9pax+Bvg/wA22aO5110/0W03b/8Agb1+c8PxLvvjH4yl8R/ETUZdS0y1Z7qLRkl+Rtv8CJ/dqXwT8V/Cdno2seKPGOpz+IfFGoxS28unXC70fd9zY/8ADXiXiq//AOEz8Qf8SW2awtPuQWm7ftoA6fxP451D4zfEt7zyFs0lbZBbxfct4l+4lfWPwu8MLC8UCrFsWJK8X+C3wil0HZPP/wAfcq/Nsi+5X2R8NPCUqXG75v8AVL/yyoA6r+wU/uR0V6R/Y6/5iooA7ZE2IlMuU3xPUtH8FAHiXxs+DOkfE7Rrix1OzV/N+Rbj+OKvz3+IX7HPizwldTf2ROt/Zbn2Ju2Psr9Zrm1jmT513V5x4s0Gxn+/bq33+tAH5YTeAPiNqWm2+i3yXf2KD54rSadvKi/4BT0/Z48UaqiRXNysMSfd/e76++tY8K6V/wA+cf3fSqNr4X0k/wDLjH+Z/wAaAPi22/ZLvHSLdqLf32SvRvAH7NNt4ev0n8pryb+F3ZPlr6usvC+kn/lxj/M/410GleF9M81P9FSgDznwB8MWR4t0Tfcf/lrX0H4b8MLYIm1W/wBUqfeqLQ9Hs7R18qBVxXXW0SxxcDFAC/Y6KsUUAf/Z",
+        opts: ["Caruncle", "Aril", "Awn", "Plum"],
+        correct: 0 
+    },
+    {
+        q: "Guignard test is selective for:",
+        opts: ["Acidic mucilage", "Cyanogenic glycosides", "Phytoestrogens", "Fixed oils"],
+        correct: 1 
+    },
+    {
+        q: "The indole alkaloid in calabar bean is:",
+        opts: ["Eserine", "Colchicine", "Caffeine", "Theobromine"],
+        correct: 0 
+    },
+    {
+        q: "Eserine is not stable so it is used as:",
+        opts: ["Sulphate", "Salicylate", "Citrate", "Hydrochloride"],
+        correct: 1 
+    },
+    {
+        q: "What is not true about Cardamom seeds?",
+        opts: ["Its volatile oil consists mainly of terpinyl acetate and cineol", "Give +ve iodine test", "Give +ve sudan III test", "Used for treatment of chronic venous insufficiency"],
+        correct: 3 // It is Horse Chestnut that is used for chronic venous insufficiency.
+    },
+    {
+        q: "Sinalbin glycoside undergo hydrolysis with myrosin enzyme giving:",
+        opts: ["Acrinyl isothicyanate", "P-hydroxyl benzyl isothiocyanate", "Allyl isothiocyanate", "Benzaldehyde"],
+        correct: 0 
+    }
+];
+
+
+        let currentRoundQuestions = [];
+        let currentIndex = 0;
+        let currentRound = 1;
+
+        function goHome() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('home-screen').classList.add('active');
+        }
+
+        function initQuiz() {
+            prepareRound([...questionsBank]);
+            currentRound = 1;
+
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('quiz-screen').classList.add('active');
+
+            loadQuestion();
+        }
+
+        function prepareRound(questionsArray) {
+            currentRoundQuestions = questionsArray.map(q => {
+                let newQ = JSON.parse(JSON.stringify(q));
+                newQ.shuffledIndices = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+                newQ.userAnswerIndex = null;
+                return newQ;
+            });
+            currentIndex = 0;
+        }
+
+        function updateProgressUI() {
+            let total = currentRoundQuestions.length;
+            let currentNum = currentIndex + 1;
+
+            document.getElementById('counter').innerText = `${currentNum} / ${total}`;
+            document.getElementById('bar').style.width = `${(currentNum / total) * 100}%`;
+            document.getElementById('round-info').innerText = `الجولة (${currentRound})`;
+        }
+
+        function loadQuestion() {
+            updateProgressUI();
+            const qData = currentRoundQuestions[currentIndex];
+
+            // تحميل نص السؤال
+            document.getElementById('q-txt').innerText = `Q: ${qData.q}`;
+
+            // تحميل صورة السؤال (إن وجدت)
+            const qImg = document.getElementById('q-img');
+            if (qData.img) {
+                qImg.src = qData.img;
+                qImg.style.display = 'block'; // إظهار الصورة
+            } else {
+                qImg.src = '';
+                qImg.style.display = 'none'; // إخفاء الصورة
+            }
+
+            const box = document.getElementById('opt-box');
+            box.innerHTML = '';
+
+            // منع الأخطاء إذا كانت الخيارات أقل من 4
+            let validIndices = qData.shuffledIndices.filter(idx => qData.opts[idx] !== undefined);
+
+            validIndices.forEach(originalIdx => {
+                const btn = document.createElement('div');
+                btn.className = 'option-btn';
+                btn.innerText = qData.opts[originalIdx];
+
+                if (qData.userAnswerIndex === null) {
+                    btn.classList.add('active-click');
+                    btn.onclick = () => selectOption(btn, originalIdx, qData);
+                } else {
+                    btn.classList.add('locked');
+                    if (originalIdx === qData.correct) {
+                        btn.classList.add('correct');
+                    } else if (originalIdx === qData.userAnswerIndex) {
+                        btn.classList.add('wrong');
+                    }
+                }
+
+                box.appendChild(btn);
+            });
+
+            document.getElementById('prev-btn').disabled = (currentIndex === 0);
+
+            const nextBtn = document.getElementById('next-btn');
+            if (qData.userAnswerIndex === null) {
+                nextBtn.disabled = true;
+            } else {
+                nextBtn.disabled = false;
+            }
+
+            if (currentIndex === currentRoundQuestions.length - 1 && qData.userAnswerIndex !== null) {
+                nextBtn.innerText = "إنهاء الجولة";
+            } else {
+                nextBtn.innerText = "التالي";
+            }
+        }
+
+        function selectOption(selectedBtn, originalIdx, qData) {
+            qData.userAnswerIndex = originalIdx;
+
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(btn => {
+                btn.classList.remove('active-click');
+                btn.classList.add('locked');
+                btn.onclick = null;
+            });
+
+            let idxCounter = 0;
+            let validIndices = qData.shuffledIndices.filter(idx => qData.opts[idx] !== undefined);
+
+            validIndices.forEach(idx => {
+                if (idx === qData.correct) {
+                    allBtns[idxCounter].classList.add('correct');
+                } else if (idx === qData.userAnswerIndex) {
+                    allBtns[idxCounter].classList.add('wrong');
+                }
+                idxCounter++;
+            });
+
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.disabled = false;
+            if (currentIndex === currentRoundQuestions.length - 1) {
+                nextBtn.innerText = "إنهاء الجولة";
+            }
+        }
+
+        function goPrev() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                loadQuestion();
+            }
+        }
+
+        function goNext() {
+            if (currentIndex < currentRoundQuestions.length - 1) {
+                currentIndex++;
+                loadQuestion();
+            } else {
+                evaluateRoundEnd();
+            }
+        }
+
+        function evaluateRoundEnd() {
+            let failedQuestions = currentRoundQuestions.filter(q => q.userAnswerIndex !== q.correct);
+
+            if (failedQuestions.length > 0) {
+                currentRound++;
+                let cleanFailed = failedQuestions.map(q => {
+                    return {
+                        q: q.q,
+                        img: q.img,
+                        opts: q.opts,
+                        correct: q.correct
+                    };
+                });
+
+                prepareRound(cleanFailed);
+                loadQuestion();
+            } else {
+                document.getElementById('win-overlay').style.display = 'flex';
+                confetti({
+                    particleCount: 300,
+                    spread: 100,
+                    origin: {
+                        y: 0.6
+                    },
+                    colors: ['#12D11E', '#2196F3', '#FFC107', '#E91E63']
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
 
